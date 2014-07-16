@@ -2,11 +2,13 @@
 
 USING_NS_CC;
 
-const float c_brickFallSpeed = 0.5f;
+const float c_brickFallSpeed = 5.0f;
 
 const float c_brickIntervalSpace = 10.0f;
 
 const int c_brickCount = 5;
+
+const int c_brickScale = 2.0f;
 
 const char* c_brickName[9] = {
 	"TRIANGLE_RED.png", "TRIANGLE_GREEN.png", "TRIANGLE_YELLOW.png",
@@ -70,7 +72,7 @@ bool HelloWorld::init()
 
 		Point locationInNode = target->convertToNodeSpace(touch->getLocation());
 		Size s = target->getContentSize();
-		Rect rect = Rect(0, 0, s.width, s.height);
+		Rect rect = Rect(0, 0, s.width*c_brickScale, s.height*c_brickScale);
 
 		if (rect.containsPoint(locationInNode))
 		{
@@ -120,6 +122,15 @@ bool HelloWorld::init()
 
 void HelloWorld::brickPushingLeft(float dt)
 {
+	int size = m_vecBrickLeft.size();
+	if (size != 0)
+	{
+		auto brick = m_vecBrickLeft.at(size - 1);
+		if (brick->getPositionY() <= Director::getInstance()->getVisibleSize().height - brick->getContentSize().height - c_brickIntervalSpace)
+		{
+			pushLeft();
+		}
+	}
 	for (int i = 0; i < m_vecBrickLeft.size(); ++i)
 	{
 		auto brick = m_vecBrickLeft.at(i);
@@ -128,7 +139,6 @@ void HelloWorld::brickPushingLeft(float dt)
 		{
 			this->removeChild(brick);
 			m_vecBrickLeft.eraseObject(brick);
-			pushLeft();
 		}
 		else
 		{
@@ -138,6 +148,15 @@ void HelloWorld::brickPushingLeft(float dt)
 }
 void HelloWorld::brickPushingMid(float dt)
 {
+	int size = m_vecBrickMid.size();
+	if (size != 0)
+	{
+		auto brick = m_vecBrickMid.at(size - 1);
+		if (brick->getPositionY() <= Director::getInstance()->getVisibleSize().height - brick->getContentSize().height - c_brickIntervalSpace)
+		{
+			pushMid();
+		}
+	}
 	for (int i = 0; i < m_vecBrickMid.size(); ++i)
 	{
 		auto brick = m_vecBrickMid.at(i);
@@ -146,7 +165,6 @@ void HelloWorld::brickPushingMid(float dt)
 		{
 			this->removeChild(brick);
 			m_vecBrickMid.eraseObject(brick);
-			pushMid();
 		}
 		else
 		{
@@ -156,7 +174,15 @@ void HelloWorld::brickPushingMid(float dt)
 }
 void HelloWorld::brickPushingRight(float dt)
 {
-
+	int size = m_vecBrickRight.size();
+	if (size != 0)
+	{
+		auto brick = m_vecBrickRight.at(size - 1);
+		if (brick->getPositionY() <= Director::getInstance()->getVisibleSize().height - brick->getContentSize().height - c_brickIntervalSpace)
+		{
+			pushRight();
+		}
+	}
 	for (int i = 0; i < m_vecBrickRight.size(); ++i)
 	{
 		auto brick = m_vecBrickRight.at(i);
@@ -165,7 +191,6 @@ void HelloWorld::brickPushingRight(float dt)
 		{
 			this->removeChild(brick);
 			m_vecBrickRight.eraseObject(brick);
-			pushRight();
 		}
 		else
 		{
@@ -181,7 +206,11 @@ Brick* HelloWorld::brickCreate()
 	int shape = getRand(SHAPE_TRIANGLE, SHAPE_CIRCLE);
 	int color = getRand(COLOR_RED, COLOR_YELLOW);
 	auto brick = Brick::create();
-	brick->bindSprite(Sprite::create(c_brickName[c_brickNameIndex[shape][color]]));
+	auto sprite = Sprite::create(c_brickName[c_brickNameIndex[shape][color]]);
+	sprite->setScale(c_brickScale);
+	//log("sprite size %f, %f", sprite->getContentSize().width, sprite->getContentSize().height);
+	brick->bindSprite(sprite);
+	//log("brick size %f, %f", brick->getContentSize().width, brick->getContentSize().height);
 	brick->setShape(shape);
 	brick->setColor(color);
 	brick->setLocalZOrder(Z_ORDER_MAX);
