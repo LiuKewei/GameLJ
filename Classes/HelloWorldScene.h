@@ -42,22 +42,18 @@ public:
     // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
 
-
-	void brickPushingLeft(float dt);
-	void brickPushingMid(float dt);
-	void brickPushingRight(float dt);
+	void brickFalling(float dt);
+	void brickPushing(float dt);
 private:
 	Brick* brickCreate();
 
-	void pushLeft();
-	void pushMid();
-	void pushRight();
+	float brickPush();
 private:
 
 	EventListenerTouchOneByOne* m_listener;
-	Vector<Brick*> m_vecBrickLeft;
-	Vector<Brick*> m_vecBrickMid;
-	Vector<Brick*> m_vecBrickRight;
+	Vector<Brick*> m_vecBrick;
+
+	int m_posFlag;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

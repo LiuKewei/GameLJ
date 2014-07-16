@@ -24,9 +24,7 @@ const int c_brickNameIndex[3][3] = {
 
 HelloWorld::~HelloWorld()
 {
-	m_vecBrickLeft.clear();
-	m_vecBrickMid.clear();
-	m_vecBrickRight.clear();
+	m_vecBrick.clear();
 	m_listener->release();
 }
 
@@ -54,7 +52,7 @@ bool HelloWorld::init()
 	{
 		return false;
 	}
-
+	m_posFlag = 1;
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Point origin = Director::getInstance()->getVisibleOrigin();
 
@@ -83,21 +81,7 @@ bool HelloWorld::init()
 			//删除对象
 			this->removeChild(target);
 			//删除，并添加元素
-			if (m_vecBrickLeft.contains(target))
-			{
-				m_vecBrickLeft.eraseObject(target);
-				//pushLeft(c_brickCount-1);
-			}
-			else if (m_vecBrickMid.contains(target))
-			{
-				m_vecBrickMid.eraseObject(target);
-				//pushMid(c_brickCount-1);
-			}
-			else if (m_vecBrickRight.contains(target))
-			{
-				m_vecBrickRight.eraseObject(target);
-				//pushRight(c_brickCount-1);
-			}
+			m_vecBrick.eraseObject(target);
 
 			return false;
 		}
@@ -110,95 +94,45 @@ bool HelloWorld::init()
 		target->setOpacity(255);
 	};
 
-	pushLeft();
-	pushMid();
-	pushRight();
-	this->schedule(schedule_selector(HelloWorld::brickPushingLeft));
-	this->schedule(schedule_selector(HelloWorld::brickPushingMid));
-	this->schedule(schedule_selector(HelloWorld::brickPushingRight));
+	float x = brickPush();
+	float y = brickPush();
+	float z = brickPush();
+	x = (x > y ? x : y);
+	x = x > z ? x : z;
+	this->schedule(schedule_selector(HelloWorld::brickFalling));
+	this->schedule(schedule_selector(HelloWorld::brickPushing), (c_brickIntervalSpace + x) / c_brickFallSpeed / 60);
 
 	return true;
 }
 
-void HelloWorld::brickPushingLeft(float dt)
+void HelloWorld::brickPushing(float dt)
 {
-	int size = m_vecBrickLeft.size();
-	if (size != 0)
-	{
-		auto brick = m_vecBrickLeft.at(size - 1);
-		if (brick->getPositionY() <= Director::getInstance()->getVisibleSize().height - brick->getContentSize().height - c_brickIntervalSpace)
-		{
-			pushLeft();
-		}
-	}
-	for (int i = 0; i < m_vecBrickLeft.size(); ++i)
-	{
-		auto brick = m_vecBrickLeft.at(i);
-		auto pos = brick->getPosition();
-		if (pos.y <= -brick->getContentSize().height / 2)
-		{
-			this->removeChild(brick);
-			m_vecBrickLeft.eraseObject(brick);
-		}
-		else
-		{
-			brick->setPosition(pos - Point(0, c_brickFallSpeed));
-		}
-	}
-}
-void HelloWorld::brickPushingMid(float dt)
-{
-	int size = m_vecBrickMid.size();
-	if (size != 0)
-	{
-		auto brick = m_vecBrickMid.at(size - 1);
-		if (brick->getPositionY() <= Director::getInstance()->getVisibleSize().height - brick->getContentSize().height - c_brickIntervalSpace)
-		{
-			pushMid();
-		}
-	}
-	for (int i = 0; i < m_vecBrickMid.size(); ++i)
-	{
-		auto brick = m_vecBrickMid.at(i);
-		auto pos = brick->getPosition();
-		if (pos.y <= -brick->getContentSize().height / 2)
-		{
-			this->removeChild(brick);
-			m_vecBrickMid.eraseObject(brick);
-		}
-		else
-		{
-			brick->setPosition(pos - Point(0, c_brickFallSpeed));
-		}
-	}
-}
-void HelloWorld::brickPushingRight(float dt)
-{
-	int size = m_vecBrickRight.size();
-	if (size != 0)
-	{
-		auto brick = m_vecBrickRight.at(size - 1);
-		if (brick->getPositionY() <= Director::getInstance()->getVisibleSize().height - brick->getContentSize().height - c_brickIntervalSpace)
-		{
-			pushRight();
-		}
-	}
-	for (int i = 0; i < m_vecBrickRight.size(); ++i)
-	{
-		auto brick = m_vecBrickRight.at(i);
-		auto pos = brick->getPosition();
-		if (pos.y <= -brick->getContentSize().height / 2)
-		{
-			this->removeChild(brick);
-			m_vecBrickRight.eraseObject(brick);
-		}
-		else
-		{
-			brick->setPosition(pos - Point(0, c_brickFallSpeed));
-		}
-	}
+	this->unschedule(schedule_selector(HelloWorld::brickPushing));
+	float x = brickPush();
+	float y = brickPush();
+	float z = brickPush();
+	x = (x > y ? x : y);
+	x = x > z ? x : z;
+	this->schedule(schedule_selector(HelloWorld::brickPushing), (c_brickIntervalSpace + x) / c_brickFallSpeed / 60);
 }
 
+void HelloWorld::brickFalling(float dt)
+{
+	for (int i = 0; i < m_vecBrick.size(); ++i)
+	{
+		auto brick = m_vecBrick.at(i);
+		auto pos = brick->getPosition();
+		if (pos.y < - brick->getContentSize().height * c_brickScale - 10.0f)
+		{
+			this->removeChild(brick);
+			m_vecBrick.eraseObject(brick);
+		}
+		else
+		{
+			brick->setPosition(pos - Point(0, c_brickFallSpeed));
+		}
+	}
+}
 
 
 Brick* HelloWorld::brickCreate()
@@ -220,21 +154,26 @@ Brick* HelloWorld::brickCreate()
 	return brick;
 }
 
-void HelloWorld::pushLeft()
+float HelloWorld::brickPush()
 {
 	auto brick = this->brickCreate();
-	brick->setPosition(Director::getInstance()->getVisibleOrigin() + Point(Director::getInstance()->getVisibleSize().width / 4, Director::getInstance()->getVisibleSize().height + brick->getContentSize().height / 2));
-	m_vecBrickLeft.pushBack(brick);
-}
-void HelloWorld::pushMid()
-{
-	auto brick = this->brickCreate();
-	brick->setPosition(Director::getInstance()->getVisibleOrigin() + Point(Director::getInstance()->getVisibleSize().width / 4 * 2, Director::getInstance()->getVisibleSize().height + brick->getContentSize().height / 2));
-	m_vecBrickMid.pushBack(brick);
-}
-void HelloWorld::pushRight()
-{
-	auto brick = this->brickCreate();
-	brick->setPosition(Director::getInstance()->getVisibleOrigin() + Point(Director::getInstance()->getVisibleSize().width / 4 * 3, Director::getInstance()->getVisibleSize().height + brick->getContentSize().height / 2));
-	m_vecBrickRight.pushBack(brick);
+	float width = 0.0;
+	if (m_posFlag % 3 == 1)
+	{
+		width = Director::getInstance()->getVisibleSize().width / 4;
+	}
+	else if (m_posFlag % 3 == 2)
+	{
+		width = Director::getInstance()->getVisibleSize().width / 2;
+	}
+	else if (m_posFlag % 3 == 0)
+	{
+		width = Director::getInstance()->getVisibleSize().width / 4 * 3;
+		m_posFlag = 0;
+	}
+	brick->setPosition(Director::getInstance()->getVisibleOrigin() + Point(width - brick->getContentSize().width / 2 * c_brickScale, Director::getInstance()->getVisibleSize().height + brick->getContentSize().height / 2));
+	m_vecBrick.pushBack(brick);
+	++m_posFlag;
+
+	return brick->getContentSize().height * c_brickScale;
 }
