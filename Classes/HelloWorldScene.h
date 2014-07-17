@@ -48,10 +48,17 @@ private:
 	Brick* brickCreate();
 
 	float brickPush();
+
+	void gamestart();
+	void gamestop();
+	void gamepause();
+	void gameactive();
 private:
 
 	EventListenerTouchOneByOne* m_listener;
 	Vector<Brick*> m_vecBrick;
+
+	Brick* m_brick;
 
 	int m_posFlag;
 };
