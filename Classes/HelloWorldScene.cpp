@@ -125,18 +125,21 @@ void HelloWorld::brickPushing(float dt)
 
 void HelloWorld::brickFalling(float dt)
 {
-	m_vecBrick.at(0)->setPosition(m_vecBrick.at(0)->getPosition() - Point(0, c_brickFallSpeed));
-	for (int i = 1; i < m_vecBrick.size(); ++i)
+	//m_vecBrick.at(0)->setPosition(m_vecBrick.at(0)->getPosition() - Point(0, c_brickFallSpeed));
+	for (int i = 0; i < m_vecBrick.size(); ++i)
 	{
 		auto target = m_vecBrick.at(i);
 		auto pos = target->getPosition();
+		target->setPosition(pos - Point(0, c_brickFallSpeed));
 		if (pos.y < -target->getContentSize().height * c_brickScale - 10.0f)
 		{
+			if (target->getColor() == m_brick->getColor() || target->getShape() == m_brick->getShape())
+			{
+				this->removeChild(target);
+				m_vecBrick.eraseObject(target);
+				continue;
+			}
 			gamestop();
-		}
-		else
-		{
-			target->setPosition(pos - Point(0, c_brickFallSpeed));
 		}
 	}
 }
