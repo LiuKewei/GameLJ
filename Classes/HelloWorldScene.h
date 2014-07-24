@@ -21,6 +21,8 @@ enum
 	Z_ORDER_TEN,
 
 	Z_ORDER_MAX,
+
+	TAG_BRICK,
 };
 
 inline int getRand(int start, int end)
@@ -43,9 +45,11 @@ public:
     CREATE_FUNC(HelloWorld);
 
 	void brickFalling(float dt);
-	void brickPushing(float dt);
+	void brickPushingLeft(float dt);
+	void brickPushingMid(float dt);
+	void brickPushingRight(float dt);
 private:
-	Brick* brickCreate();
+	Node* brickCreate();
 
 	float brickPush();
 
@@ -56,11 +60,14 @@ private:
 private:
 
 	EventListenerTouchOneByOne* m_listener;
-	Vector<Brick*> m_vecBrick;
+	Vector<Node*> m_vecBrick;
 
-	Brick* m_brick;
+	Node* m_brick;
 
 	int m_posFlag;
+
+	//Waves3D* waves;
+	Shaky3D* waves;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

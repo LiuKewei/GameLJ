@@ -2,9 +2,11 @@
 
 USING_NS_CC;
 
-const float c_brickFallSpeed = 1.0f;
 
-const float c_brickIntervalSpace = 15.0f;
+
+const float c_brickFallSpeed = 2.0f;
+
+const float c_brickIntervalSpace = 20.0f;
 
 const int c_brickCount = 5;
 
@@ -21,6 +23,8 @@ const int c_brickNameIndex[3][3] = {
 	3, 4, 5,
 	6, 7, 8
 };
+
+#define FALLINTERVAL(x) ((c_brickIntervalSpace*(CCRANDOM_0_1()*1.5f+1.0f) + (x)) / c_brickFallSpeed / 60)
 
 HelloWorld::~HelloWorld()
 {
@@ -57,17 +61,19 @@ bool HelloWorld::init()
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Point origin = Director::getInstance()->getVisibleOrigin();
 
-	CCLOG("origin %f, %f", origin.x, origin.y);
+	//CCLOG("origin %f, %f", origin.x, origin.y);
 
-	CCLOG("visibleSize %f, %f", visibleSize.width, visibleSize.height);
+	//CCLOG("visibleSize %f, %f", visibleSize.width, visibleSize.height);
 
+	//waves = Waves3D::create(10, Size(15, 10), 18, 15);
+	waves = Shaky3D::create(20, Size(20, 20), 2, false);
 
 	m_listener = EventListenerTouchOneByOne::create();
 	m_listener->setSwallowTouches(true);
 	m_listener->retain();
 
 	m_listener->onTouchBegan = [=](Touch* touch, Event* event){
-		auto target = static_cast<Brick*>(event->getCurrentTarget());
+		auto target = static_cast<Node*>(event->getCurrentTarget());
 
 		Point locationInNode = target->convertToNodeSpace(touch->getLocation());
 		Size s = target->getContentSize();
@@ -79,9 +85,11 @@ bool HelloWorld::init()
 
 			//游戏结束
 
-			if (target->getShape() == m_brick->getShape() && target->getColor() == m_brick->getColor())
+			auto b = static_cast<Brick*>(m_brick->getChildByTag(TAG_BRICK));
+			auto targetbrick = static_cast<Brick*>(target->getChildByTag(TAG_BRICK));
+			if (targetbrick->getShape() == b->getShape() && targetbrick->getColor() == b->getColor())
 			{
-				log("Game Over!!");
+				log("Game Over!!  onTouchBegan");
 				gamestop();
 			}
 			else
@@ -91,8 +99,6 @@ bool HelloWorld::init()
 				//删除对象
 				this->removeChild(target);
 				m_vecBrick.eraseObject(target);
-				this->removeChild(m_brick);
-				m_vecBrick.eraseObject(m_brick);
 			}
 
 
@@ -112,15 +118,22 @@ bool HelloWorld::init()
 	return true;
 }
 
-void HelloWorld::brickPushing(float dt)
+void HelloWorld::brickPushingLeft(float dt)
 {
-	this->unschedule(schedule_selector(HelloWorld::brickPushing));
-	float x = brickPush();
-	float y = brickPush();
-	float z = brickPush();
-	x = (x > y ? x : y);
-	x = x > z ? x : z;
-	this->schedule(schedule_selector(HelloWorld::brickPushing), (c_brickIntervalSpace + x) / c_brickFallSpeed / 60);
+	this->unschedule(schedule_selector(HelloWorld::brickPushingLeft));
+	this->schedule(schedule_selector(HelloWorld::brickPushingLeft), FALLINTERVAL(brickPush()));
+}
+
+void HelloWorld::brickPushingMid(float dt)
+{
+	this->unschedule(schedule_selector(HelloWorld::brickPushingMid));
+	this->schedule(schedule_selector(HelloWorld::brickPushingMid), FALLINTERVAL(brickPush()));
+}
+
+void HelloWorld::brickPushingRight(float dt)
+{
+	this->unschedule(schedule_selector(HelloWorld::brickPushingRight));
+	this->schedule(schedule_selector(HelloWorld::brickPushingRight), FALLINTERVAL(brickPush()));
 }
 
 void HelloWorld::brickFalling(float dt)
@@ -131,22 +144,28 @@ void HelloWorld::brickFalling(float dt)
 		auto target = m_vecBrick.at(i);
 		auto pos = target->getPosition();
 		target->setPosition(pos - Point(0, c_brickFallSpeed));
-		if (pos.y < -target->getContentSize().height * c_brickScale - 10.0f)
+		auto targetbrick = static_cast<Brick*>(target->getChildByTag(TAG_BRICK));
+		if (pos.y < targetbrick->getContentSize().height / 2 * c_brickScale)
 		{
-			if (target->getColor() == m_brick->getColor() || target->getShape() == m_brick->getShape())
+			auto b = static_cast<Brick*>(m_brick->getChildByTag(TAG_BRICK));
+			if (targetbrick->getColor() == b->getColor() && targetbrick->getShape() == b->getShape())
 			{
 				this->removeChild(target);
 				m_vecBrick.eraseObject(target);
 				continue;
 			}
+			log("Game Over!!  brickFalling");
 			gamestop();
 		}
 	}
 }
 
 
-Brick* HelloWorld::brickCreate()
+Node* HelloWorld::brickCreate()
 {
+	auto _bgNode = NodeGrid::create();
+	_bgNode->setAnchorPoint(Point::ANCHOR_BOTTOM_LEFT);
+	addChild(_bgNode);
 	int shape = getRand(SHAPE_TRIANGLE, SHAPE_CIRCLE);
 	int color = getRand(COLOR_RED, COLOR_YELLOW);
 	auto brick = Brick::create();
@@ -155,13 +174,15 @@ Brick* HelloWorld::brickCreate()
 	//log("sprite size %f, %f", sprite->getContentSize().width, sprite->getContentSize().height);
 	brick->bindSprite(sprite);
 	//log("brick size %f, %f", brick->getContentSize().width, brick->getContentSize().height);
+	_bgNode->setContentSize(brick->getContentSize());
 	brick->setShape(shape);
 	brick->setColor(color);
 	brick->setLocalZOrder(Z_ORDER_MAX);
-	this->addChild(brick);
-	_eventDispatcher->addEventListenerWithSceneGraphPriority(m_listener->clone(), brick);
+	brick->setTag(TAG_BRICK);
+	_bgNode->addChild(brick);
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(m_listener->clone(), _bgNode);
 	//CCLOG("brick->getAnchorPoint() .... %f, %f", brick->getAnchorPoint().x, brick->getAnchorPoint().y);
-	return brick;
+	return _bgNode;
 }
 
 float HelloWorld::brickPush()
@@ -185,6 +206,9 @@ float HelloWorld::brickPush()
 	m_vecBrick.pushBack(brick);
 	++m_posFlag;
 
+	
+	brick->runAction(Sequence::create(waves, NULL));
+
 	return brick->getContentSize().height * c_brickScale;
 }
 
@@ -197,9 +221,12 @@ void HelloWorld::gamestart()
 	m_brick->retain();
 	m_brick->setPosition(Director::getInstance()->getVisibleOrigin() + Point(Director::getInstance()->getVisibleSize().width / 2 - m_brick->getContentSize().width / 2 * c_brickScale, Director::getInstance()->getVisibleSize().height + m_brick->getContentSize().height / 2));
 	m_vecBrick.insert(0, m_brick);
+	m_brick->runAction(Sequence::create(waves, NULL));
 
 	this->schedule(schedule_selector(HelloWorld::brickFalling));
-	this->schedule(schedule_selector(HelloWorld::brickPushing), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
+	this->schedule(schedule_selector(HelloWorld::brickPushingLeft), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
+	this->schedule(schedule_selector(HelloWorld::brickPushingMid), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
+	this->schedule(schedule_selector(HelloWorld::brickPushingRight), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
 }
 void HelloWorld::gamestop()
 {
@@ -210,5 +237,10 @@ void HelloWorld::gamestop()
 void HelloWorld::gamepause()
 {
 	this->unschedule(schedule_selector(HelloWorld::brickFalling));
-	this->unschedule(schedule_selector(HelloWorld::brickPushing));
+	this->unschedule(schedule_selector(HelloWorld::brickPushingLeft));
+	this->unschedule(schedule_selector(HelloWorld::brickPushingMid));
+	this->unschedule(schedule_selector(HelloWorld::brickPushingRight));
 }
+
+
+
