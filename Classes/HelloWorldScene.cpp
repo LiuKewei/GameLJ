@@ -31,6 +31,9 @@ HelloWorld::~HelloWorld()
 	m_vecBrick.clear();
 	m_brick->release();
 	m_listener->release();
+	m_showstand->release();
+	m_scoreLabel->release();
+	waves->release();
 }
 
 Scene* HelloWorld::createScene()
@@ -59,7 +62,8 @@ bool HelloWorld::init()
 	}
 	m_posFlag = 1;
 	m_score = 0;
-	m_brickBaseScore = 100;
+	m_brickBaseScore = 10;
+	m_brickFallSpeed = c_brickFallSpeed;
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Point origin = Director::getInstance()->getVisibleOrigin();
 
@@ -67,8 +71,14 @@ bool HelloWorld::init()
 
 	//CCLOG("visibleSize %f, %f", visibleSize.width, visibleSize.height);
 
+	m_showstand = Sprite::create("showstand.png");
+	m_showstand->setPosition(origin + Point(visibleSize.width/2,visibleSize.height/2) - Point(0,visibleSize.height));
+	m_showstand->setLocalZOrder(Z_ORDER_MAX);
+	m_showstand->retain();
+
 	//waves = Waves3D::create(10, Size(15, 10), 18, 15);
-	waves = Shaky3D::create(20, Size(20, 20), 2, false);
+	waves = Shaky3D::create(20, Size(10, 10), 1, false);
+	waves->retain();
 
 	m_listener = EventListenerTouchOneByOne::create();
 	m_listener->setSwallowTouches(true);
@@ -76,7 +86,6 @@ bool HelloWorld::init()
 
 	m_listener->onTouchBegan = [=](Touch* touch, Event* event){
 		auto target = static_cast<Node*>(event->getCurrentTarget());
-
 		Point locationInNode = target->convertToNodeSpace(touch->getLocation());
 		Size s = target->getContentSize();
 		Rect rect = Rect(0, 0, s.width*c_brickScale, s.height*c_brickScale);
@@ -93,7 +102,7 @@ bool HelloWorld::init()
 			{
 				log("Game Over!!  onTouchBegan");
 				gamestop();
-				target->runAction(Sequence::create(Blink::create(2.0f, 3), CallFuncN::create(CC_CALLBACK_0(HelloWorld::showstand, NULL)), NULL));
+				target->runAction(Sequence::create(Blink::create(2.0f, 3), CallFuncN::create(CC_CALLBACK_0(HelloWorld::showstand, this)), NULL));
 			}
 			else
 			{
@@ -119,7 +128,10 @@ bool HelloWorld::init()
 	m_scoreLabel = Label::createWithBMFont("boundsTestFont.fnt", "");
 	m_scoreLabel->setPosition(Director::getInstance()->getVisibleOrigin() + Point(Director::getInstance()->getVisibleSize().width / 2, Director::getInstance()->getVisibleSize().height - 50));
 	m_scoreLabel->setScale(1.8f);
-	this->addChild(m_scoreLabel, Z_ORDER_MAX);
+	m_scoreLabel->retain();
+	sprintf(m_scoreLabelstr, "0000", m_score);
+	m_scoreLabel->setString(m_scoreLabelstr);
+	this->addChild(m_scoreLabel, Z_ORDER_MAX-1);
 	gamestart();
 
 	return true;
@@ -163,7 +175,7 @@ void HelloWorld::brickFalling(float dt)
 			}
 			log("Game Over!!  brickFalling");
 			gamestop();
-			target->runAction(Sequence::create(Blink::create(2.0f, 3), CallFuncN::create(CC_CALLBACK_0(HelloWorld::showstand, NULL)), NULL));
+			target->runAction(Sequence::create(Blink::create(2.0f, 3), CallFuncN::create(CC_CALLBACK_0(HelloWorld::showstand, this)), NULL));
 		}
 	}
 }
@@ -215,7 +227,7 @@ float HelloWorld::brickPush()
 	++m_posFlag;
 
 	
-	brick->runAction(Sequence::create(waves, NULL));
+	brick->runAction(waves);
 
 	return brick->getContentSize().height * c_brickScale;
 }
@@ -229,7 +241,6 @@ void HelloWorld::gamestart()
 	m_brick->retain();
 	m_brick->setPosition(Director::getInstance()->getVisibleOrigin() + Point(Director::getInstance()->getVisibleSize().width / 2 - m_brick->getContentSize().width / 2 * c_brickScale, Director::getInstance()->getVisibleSize().height + m_brick->getContentSize().height / 2));
 	m_vecBrick.insert(0, m_brick);
-	m_brick->runAction(Sequence::create(waves, NULL));
 
 	this->schedule(schedule_selector(HelloWorld::brickFalling));
 	this->schedule(schedule_selector(HelloWorld::brickPushingLeft), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
@@ -240,8 +251,6 @@ void HelloWorld::gamestart()
 void HelloWorld::gamestop()
 {
 	gamepause();
-	//this->removeAllChildren();
-	//m_vecBrick.clear();
 	for (auto e : m_vecBrick)
 	{
 		e->stopAllActions();
@@ -260,13 +269,88 @@ void HelloWorld::gamepause()
 void HelloWorld::score()
 {
 	m_score += m_brickBaseScore;
+	if (m_score % 500 == 0)
+	{
+		m_brickFallSpeed += m_brickFallSpeed*0.1f;
+		m_brickBaseScore = m_brickBaseScore >= 100 ? 100 : m_brickBaseScore + 10;
+	}
 	sprintf(m_scoreLabelstr, "%d", m_score);
 	m_scoreLabel->setString(m_scoreLabelstr);
 }
 
 void HelloWorld::showstand()
 {
+	this->removeAllChildren();
+	m_vecBrick.clear();
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+	Point origin = Director::getInstance()->getVisibleOrigin();
+	this->addChild(m_showstand);
+	
 
+	
+	auto gameRestartItem = MenuItemImage::create(
+		"restart.png",
+		"restart.png",
+		CC_CALLBACK_1(HelloWorld::restartGame, this));
+	
+	gameRestartItem->setPosition(Point(origin.x + visibleSize.width/2,
+		origin.y + visibleSize.height/2 + gameRestartItem->getContentSize().height / 2));
+	
+	// create menu, it's an autorelease object
+	auto gameRestartMenu = Menu::create(gameRestartItem, NULL);
+	gameRestartMenu->setPosition(Point::ANCHOR_MIDDLE);
+	m_showstand->addChild(gameRestartMenu, Z_ORDER_MAX);
+
+
+	// add a "close" icon to exit the progress. it's an autorelease object
+	auto closeItem = MenuItemImage::create(
+		"CloseNormal.png",
+		"CloseSelected.png",
+		CC_CALLBACK_1(HelloWorld::menuCloseCallback, this));
+
+	closeItem->setPosition(Point(origin.x + visibleSize.width - closeItem->getContentSize().width / 2,
+		origin.y + closeItem->getContentSize().height / 2));
+
+	// create menu, it's an autorelease object
+	auto menu = Menu::create(closeItem, NULL);
+	menu->setPosition(Point::ZERO);
+	m_showstand->addChild(menu, Z_ORDER_MAX);
+
+	m_showstand->addChild(m_scoreLabel, Z_ORDER_MAX);
+	m_scoreLabel->setPosition(origin + Point(visibleSize.width/2,visibleSize.height *4/5));
+	m_showstand->runAction(MoveBy::create(1,Point(0,visibleSize.height)));
 }
 
 
+
+
+void HelloWorld::menuCloseCallback(Ref* pSender)
+{
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_WP8) || (CC_TARGET_PLATFORM == CC_PLATFORM_WINRT)
+	MessageBox("You pressed the close button. Windows Store Apps do not implement a close button.", "Alert");
+	return;
+#endif
+
+	Director::getInstance()->end();
+
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+	exit(0);
+#endif
+}
+
+void HelloWorld::restartGame(Ref* pSender)
+{
+	this->removeAllChildren();
+	m_brick->release();
+	m_showstand->removeAllChildren();
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+	Point origin = Director::getInstance()->getVisibleOrigin();
+	m_showstand->setPosition(origin + Point(visibleSize.width/2,visibleSize.height/2) - Point(0,visibleSize.height));
+	m_score = 0;
+	m_brickBaseScore = 10;
+	m_brickFallSpeed = c_brickFallSpeed;
+	m_scoreLabel->setString("0000");
+	this->addChild(m_scoreLabel, Z_ORDER_MAX-1);
+
+	this->gamestart();
+}

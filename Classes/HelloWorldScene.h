@@ -60,6 +60,9 @@ private:
 
 	void score();
 	void showstand();
+
+	void menuCloseCallback(Ref* pSender);
+	void restartGame(Ref* pSender);
 private:
 
 	EventListenerTouchOneByOne* m_listener;
@@ -77,6 +80,10 @@ private:
 	long m_brickBaseScore;
 	Label* m_scoreLabel;
 	char m_scoreLabelstr[100];
+
+	Sprite* m_showstand;
+
+	float m_brickFallSpeed;
 };
 
 #endif // __HELLOWORLD_SCENE_H__
