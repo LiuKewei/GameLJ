@@ -57,6 +57,9 @@ private:
 	void gamestop();
 	void gamepause();
 	void gameactive();
+
+	void score();
+	void showstand();
 private:
 
 	EventListenerTouchOneByOne* m_listener;
@@ -65,9 +68,15 @@ private:
 	Node* m_brick;
 
 	int m_posFlag;
+	bool m_listenerFlag;
 
 	//Waves3D* waves;
 	Shaky3D* waves;
+
+	long long m_score;
+	long m_brickBaseScore;
+	Label* m_scoreLabel;
+	char m_scoreLabelstr[100];
 };
 
 #endif // __HELLOWORLD_SCENE_H__

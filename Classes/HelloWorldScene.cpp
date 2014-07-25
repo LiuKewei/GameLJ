@@ -58,6 +58,8 @@ bool HelloWorld::init()
 		return false;
 	}
 	m_posFlag = 1;
+	m_score = 0;
+	m_brickBaseScore = 100;
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Point origin = Director::getInstance()->getVisibleOrigin();
 
@@ -79,7 +81,7 @@ bool HelloWorld::init()
 		Size s = target->getContentSize();
 		Rect rect = Rect(0, 0, s.width*c_brickScale, s.height*c_brickScale);
 
-		if (rect.containsPoint(locationInNode))
+		if (rect.containsPoint(locationInNode) && m_listenerFlag)
 		{
 			//log("sprite began... x = %f, y = %f", locationInNode.x, locationInNode.y);
 
@@ -91,11 +93,12 @@ bool HelloWorld::init()
 			{
 				log("Game Over!!  onTouchBegan");
 				gamestop();
+				target->runAction(Sequence::create(Blink::create(2.0f, 3), CallFuncN::create(CC_CALLBACK_0(HelloWorld::showstand, NULL)), NULL));
 			}
 			else
 			{
 				//加分
-
+				this->score();
 				//删除对象
 				this->removeChild(target);
 				m_vecBrick.eraseObject(target);
@@ -113,6 +116,10 @@ bool HelloWorld::init()
 		target->setOpacity(255);
 	};
 
+	m_scoreLabel = Label::createWithBMFont("boundsTestFont.fnt", "");
+	m_scoreLabel->setPosition(Director::getInstance()->getVisibleOrigin() + Point(Director::getInstance()->getVisibleSize().width / 2, Director::getInstance()->getVisibleSize().height - 50));
+	m_scoreLabel->setScale(1.8f);
+	this->addChild(m_scoreLabel, Z_ORDER_MAX);
 	gamestart();
 
 	return true;
@@ -156,6 +163,7 @@ void HelloWorld::brickFalling(float dt)
 			}
 			log("Game Over!!  brickFalling");
 			gamestop();
+			target->runAction(Sequence::create(Blink::create(2.0f, 3), CallFuncN::create(CC_CALLBACK_0(HelloWorld::showstand, NULL)), NULL));
 		}
 	}
 }
@@ -227,20 +235,38 @@ void HelloWorld::gamestart()
 	this->schedule(schedule_selector(HelloWorld::brickPushingLeft), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
 	this->schedule(schedule_selector(HelloWorld::brickPushingMid), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
 	this->schedule(schedule_selector(HelloWorld::brickPushingRight), (c_brickIntervalSpace + m_brick->getContentSize().height * c_brickScale * 5.0f) / c_brickFallSpeed / 60);
+	m_listenerFlag = true;
 }
 void HelloWorld::gamestop()
 {
 	gamepause();
-	this->removeAllChildren();
-	m_vecBrick.clear();
+	//this->removeAllChildren();
+	//m_vecBrick.clear();
+	for (auto e : m_vecBrick)
+	{
+		e->stopAllActions();
+	}
 }
 void HelloWorld::gamepause()
 {
+	m_listenerFlag = false;
 	this->unschedule(schedule_selector(HelloWorld::brickFalling));
 	this->unschedule(schedule_selector(HelloWorld::brickPushingLeft));
 	this->unschedule(schedule_selector(HelloWorld::brickPushingMid));
 	this->unschedule(schedule_selector(HelloWorld::brickPushingRight));
 }
 
+
+void HelloWorld::score()
+{
+	m_score += m_brickBaseScore;
+	sprintf(m_scoreLabelstr, "%d", m_score);
+	m_scoreLabel->setString(m_scoreLabelstr);
+}
+
+void HelloWorld::showstand()
+{
+
+}
 
 
