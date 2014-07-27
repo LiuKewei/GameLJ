@@ -35,6 +35,9 @@ public:
 	void setColor(int color);
 	int getColor();
 
+
+	bool m_scaleFlag;
+
 private:
 
 private:

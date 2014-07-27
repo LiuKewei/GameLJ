@@ -3,6 +3,7 @@
 Brick::Brick()
 : m_color(-1)
 , m_shape(-1)
+, m_scaleFlag(false)
 {
 }
 

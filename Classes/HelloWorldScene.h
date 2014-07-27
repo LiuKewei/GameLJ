@@ -44,6 +44,7 @@ public:
     // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
 
+	void brickScaling(float dt);
 	void brickFalling(float dt);
 	void brickPushingLeft(float dt);
 	void brickPushingMid(float dt);
@@ -73,8 +74,7 @@ private:
 	int m_posFlag;
 	bool m_listenerFlag;
 
-	//Waves3D* waves;
-	Shaky3D* waves;
+	ActionInterval* waves;
 
 	long long m_score;
 	long m_brickBaseScore;
