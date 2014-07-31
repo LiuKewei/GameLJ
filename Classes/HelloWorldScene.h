@@ -84,6 +84,8 @@ private:
 	Sprite* m_showstand;
 
 	float m_brickFallSpeed;
+
+	int m_bg_music;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

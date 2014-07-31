@@ -1,7 +1,7 @@
 #include "HelloWorldScene.h"
-
+#include "SimpleAudioEngine.h"
 USING_NS_CC;
-
+using namespace CocosDenshion;
 
 
 const float c_brickFallSpeed = 1.5f;
@@ -26,15 +26,19 @@ const int c_brickNameIndex[3][3] = {
 	6, 7, 8
 };
 
+const char* c_bg_music[4] = {
+	"BGM1.mp3", "BGM2.mp3", "BGM3.mp3", "BGM4.mp3"
+};
+
 #define FALLINTERVAL(x) ((c_brickIntervalSpace*(CCRANDOM_0_1()*1.5f+1.0f) + (x)) / m_brickFallSpeed / 60.0f)
 
 HelloWorld::~HelloWorld()
 {
 	m_vecBrick.clear();
-	m_brick->release();
-	m_listener->release();
-	m_showstand->release();
-	m_scoreLabel->release();
+	if (m_brick) m_brick->release();
+	if (m_listener) m_listener->release();
+	if (m_showstand) m_showstand->release();
+	if (m_scoreLabel) m_scoreLabel->release();
 }
 
 Scene* HelloWorld::createScene()
@@ -61,10 +65,21 @@ bool HelloWorld::init()
 	{
 		return false;
 	}
+	m_brick = nullptr;
 	m_posFlag = 1;
 	m_score = 0;
 	m_brickBaseScore = 10;
 	m_brickFallSpeed = c_brickFallSpeed;
+
+	//log("sizeof(c_bg_music) %d", sizeof(c_bg_music));
+	//log("sizeof(c_bg_music) / sizeof(c_bg_music[0]) %d", sizeof(c_bg_music) / sizeof(c_bg_music[0]));
+	m_bg_music = getRand(0, sizeof(c_bg_music) / sizeof(c_bg_music[0])-1);
+	SimpleAudioEngine::sharedEngine()->preloadBackgroundMusic(c_bg_music[m_bg_music]);
+	//SimpleAudioEngine::sharedEngine()->preloadEffect();
+
+	SimpleAudioEngine::sharedEngine()->setEffectsVolume(0.5);
+	SimpleAudioEngine::sharedEngine()->setBackgroundMusicVolume(0.5);
+
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Point origin = Director::getInstance()->getVisibleOrigin();
 
@@ -132,7 +147,10 @@ bool HelloWorld::init()
 	sprintf(m_scoreLabelstr, "0000", m_score);
 	m_scoreLabel->setString(m_scoreLabelstr);
 	this->addChild(m_scoreLabel, Z_ORDER_MAX - 1);
-	gamestart();
+
+
+	//gamestart();
+	this->showstand();
 
 	return true;
 }
@@ -287,6 +305,8 @@ void HelloWorld::gamestart()
 	this->schedule(schedule_selector(HelloWorld::brickPushingMid), inteval);
 	this->schedule(schedule_selector(HelloWorld::brickPushingRight), inteval);
 	m_listenerFlag = true;
+	//SimpleAudioEngine::sharedEngine()->playBackgroundMusic(std::string(FileUtils::getInstance()->fullPathForFilename(c_bg_music[m_bg_music])).c_str(), true);
+	SimpleAudioEngine::sharedEngine()->playBackgroundMusic(c_bg_music[m_bg_music], true);
 }
 void HelloWorld::gamestop()
 {
@@ -328,7 +348,9 @@ void HelloWorld::showstand()
 	Point origin = Director::getInstance()->getVisibleOrigin();
 	this->addChild(m_showstand);
 
-
+	m_bg_music = getRand(0, sizeof(c_bg_music) / sizeof(c_bg_music[0]) - 1);
+	SimpleAudioEngine::sharedEngine()->preloadBackgroundMusic(c_bg_music[m_bg_music]);
+	//SimpleAudioEngine::sharedEngine()->preloadEffect();
 
 	auto gameRestartItem = MenuItemImage::create(
 		"restart.png",
@@ -383,7 +405,7 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 void HelloWorld::restartGame(Ref* pSender)
 {
 	this->removeAllChildren();
-	m_brick->release();
+	if (m_brick) m_brick->release();
 	m_showstand->removeAllChildren();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Point origin = Director::getInstance()->getVisibleOrigin();
